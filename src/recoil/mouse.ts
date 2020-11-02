@@ -12,10 +12,10 @@ export function useMouseMove$(): Observable<MouseEvent> {
 }
 
 export function useTrackMouseMove(element: HTMLElement) {
-  const $ = useRecoilValue(mouseMove$);
+  const mouseMoveSub = useRecoilValue(mouseMove$);
   useEffect(() => {
-    const listener = (event: MouseEvent) => $.next(event);
+    const listener = (event: MouseEvent) => mouseMoveSub.next(event);
     element.addEventListener('mousemove', listener);
     return () => document.body.removeEventListener('mousemove', listener);
-  }, [element, mouseMove$]);
+  }, [mouseMoveSub, element]);
 }

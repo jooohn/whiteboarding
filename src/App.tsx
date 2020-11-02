@@ -1,10 +1,9 @@
 import { CssBaseline } from '@material-ui/core';
 import React from 'react';
-import { RecoilRoot } from 'recoil';
 import './App.css';
 import { ControlContainer } from './components/Control';
-import { useTrackMouseMove } from './mouse';
 import { VideoContainer } from './components/Video';
+import { useTrackMouseMove } from './recoil/mouse';
 
 const MouseTracking: React.FC = () => {
   useTrackMouseMove(document.body);
@@ -13,12 +12,12 @@ const MouseTracking: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <RecoilRoot>
+    <>
       <CssBaseline/>
       <MouseTracking/>
       <ControlContainer/>
       <VideoContainer/>
-    </RecoilRoot>
+    </>
   );
 }
 

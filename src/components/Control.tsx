@@ -1,8 +1,9 @@
-import { AppBar, Button, Fade, MenuItem, Select, Toolbar } from '@material-ui/core';
+import { AppBar, Button, Fade, IconButton, MenuItem, Select, Toolbar } from '@material-ui/core';
+import FlipIcon from '@material-ui/icons/Flip';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { delay, map, startWith, switchMap } from 'rxjs/operators';
-import { useMouseMove$ } from '../mouse';
+import { useMouseMove$ } from '../recoil/mouse';
 import { useFlipHorizontally, useFlipVertically } from '../recoil/control';
 import { useLoadVideoStream, useSelectVideoStream, useVideoStreamState } from '../recoil/video-stream';
 
@@ -44,7 +45,7 @@ export const ControlContainer: React.FC = () => {
   const videoStreamState = useVideoStreamState();
   const loadVideoStream = useLoadVideoStream();
   const selectVideoStream = useSelectVideoStream();
-  useEffect(() => loadVideoStream(), []);
+  useEffect(() => loadVideoStream(), [loadVideoStream]);
   return (
     <div
       onMouseEnter={() => enter$.next(true)}
@@ -77,8 +78,18 @@ export const ControlContainer: React.FC = () => {
                 Turn On Camera
               </Button>
             )}
-            <Button onClick={flipHorizontally}>Flip Horizontally ⇆</Button>
-            <Button onClick={flipVertically}>Flip Vertically ⇅</Button>
+            <IconButton
+              onClick={flipHorizontally}
+              aria-label="flip horizontally"
+            >
+              <FlipIcon/>
+            </IconButton>
+            <IconButton
+              onClick={flipVertically}
+              aria-label="flip vertically"
+            >
+              <FlipIcon style={{transform: 'rotate(0.25turn)'}} />
+            </IconButton>
           </Toolbar>
         </AppBar>
       </Fade>

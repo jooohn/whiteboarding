@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { atom, useRecoilValue, useSetRecoilState } from 'recoil';
 import { useErrorHandler } from '../error-handler';
 
@@ -36,7 +37,7 @@ async function loadMediaStream(deviceId: string) {
 function useLoadVideoStreamState(): (f: (devices: MediaDeviceInfo[]) => string | undefined) => void {
   const setState = useSetRecoilState(videoStream);
   const errorHandler = useErrorHandler();
-  return async f => {
+  return useMemo(() => async f => {
     setState(loading);
     try {
       const videoInputDevices = await loadVideoInputDevices();
@@ -51,15 +52,15 @@ function useLoadVideoStreamState(): (f: (devices: MediaDeviceInfo[]) => string |
       errorHandler(e);
       setState(waiting);
     }
-  };
+  }, [errorHandler, setState]);
 }
 
 export function useLoadVideoStream(): () => void {
   const loadVideoStreamState = useLoadVideoStreamState();
-  return () => loadVideoStreamState(devices => devices[0]?.deviceId);
+  return useMemo(() => () => loadVideoStreamState(devices => devices[0]?.deviceId), [loadVideoStreamState]);
 }
 
 export function useSelectVideoStream(): (deviceId: string) => void {
   const loadVideoStreamState = useLoadVideoStreamState();
-  return (deviceId: string) => loadVideoStreamState(() => deviceId);
+  return useMemo(() => (deviceId: string) => loadVideoStreamState(() => deviceId), [loadVideoStreamState]);
 }
