@@ -1,26 +1,27 @@
 import React, { Ref, useCallback, useEffect, useState } from 'react';
 import { useControlValue } from '../recoil/control';
-import { useVideoStreamState } from '../recoil/video-stream';
+import { useVideoStream } from '../recoil/video-stream';
 
 export const VideoContainer: React.FC = () => {
-  const { horizontallyFlipped, verticallyFlipped } = useControlValue();
-  const videoStreamState = useVideoStreamState();
+  const { camera, horizontallyFlipped, verticallyFlipped } = useControlValue();
+  const videoStream = useVideoStream();
   const [video, setVideo] = useState<HTMLVideoElement | undefined>();
   const ref = useCallback(node => {
     setVideo(node ?? undefined);
   }, [setVideo]);
   useEffect(() => {
-    if (!video || videoStreamState.state !== 'LOADED' || !videoStreamState.selected) {
+    if (!video || !videoStream) {
       return;
     }
     const listener = () => video.play();
     video.addEventListener('loadedmetadata', listener);
-    video.srcObject = videoStreamState.selected.stream;
-    return () => video.removeEventListener('loadedmetadata', listener);
-  }, [video, videoStreamState]);
-  if (videoStreamState.state !== 'LOADED' || !videoStreamState.selected) {
-    return null;
-  }
+    video.srcObject = videoStream;
+    return () => {
+      video.removeEventListener('loadedmetadata', listener);
+      video.pause();
+      video.srcObject = null;
+    }
+  }, [video, videoStream, camera]);
   return (
     <Video
       ref={ref}
@@ -44,4 +45,3 @@ export const Video = React.forwardRef(({ horizontallyFlipped, verticallyFlipped 
     }}
   />
 ));
-

@@ -1,13 +1,18 @@
-import { AppBar, Button, Fade, IconButton, MenuItem, Select, Toolbar } from '@material-ui/core';
+import { AppBar, Fade, IconButton, MenuItem, PropTypes, Select, Toolbar } from '@material-ui/core';
+import CameraAltIcon from '@material-ui/icons/CameraAlt';
 import FlipIcon from '@material-ui/icons/Flip';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { delay, map, startWith, switchMap } from 'rxjs/operators';
+import { useControlValue, useFlipHorizontally, useFlipVertically, useToggleCamera } from '../recoil/control';
 import { useMouseMove$ } from '../recoil/mouse';
-import { useFlipHorizontally, useFlipVertically } from '../recoil/control';
-import { useLoadVideoStream, useSelectVideoStream, useVideoStreamState } from '../recoil/video-stream';
+import { useDeviceSelection, useLoadVideoStream, useSelectDevice } from '../recoil/video-stream';
 
 const controlAppearanceDuration = 2000;
+
+function iconColor(active: boolean): PropTypes.Color {
+  return active ? 'primary' : 'default';
+}
 
 function useShowControl(mouseMove$: Observable<MouseEvent>, enter$: Observable<boolean>): boolean {
   const [show, setShow] = useState(false);
@@ -40,31 +45,39 @@ export const ControlContainer: React.FC = () => {
   const mouseMove$ = useMouseMove$();
   const enter$ = useMemo(() => new BehaviorSubject(false), []);
   const showControl = useShowControl(mouseMove$, enter$);
+  const control = useControlValue();
+  const toggleCamera = useToggleCamera();
   const flipHorizontally = useFlipHorizontally();
   const flipVertically = useFlipVertically();
-  const videoStreamState = useVideoStreamState();
-  const loadVideoStream = useLoadVideoStream();
-  const selectVideoStream = useSelectVideoStream();
-  useEffect(() => loadVideoStream(), [loadVideoStream]);
+  const deviceSelection = useDeviceSelection();
+  const selectDevice = useSelectDevice();
+  useLoadVideoStream(control.camera);
   return (
     <div
       onMouseEnter={() => enter$.next(true)}
       onMouseLeave={() => enter$.next(false)}
     >
       <Fade in={showControl}>
-        <AppBar color="default">
+        <AppBar color="transparent">
           <Toolbar>
-            {videoStreamState.state === 'LOADED' ? (
+            <IconButton
+              onClick={toggleCamera}
+              aria-label="toggle camera"
+              color={iconColor(control.camera)}
+            >
+              <CameraAltIcon/>
+            </IconButton>
+            {deviceSelection.deviceId && (
               <Select
-                value={videoStreamState.selected?.deviceId}
+                value={deviceSelection.deviceId}
                 onChange={e => {
                   const value = e.target.value;
                   if (typeof value === 'string') {
-                    selectVideoStream(value);
+                    selectDevice(value);
                   }
                 }}
               >
-                {videoStreamState.videoInputDevices.map(device => (
+                {deviceSelection.devices.map(device => (
                   <MenuItem
                     key={device.deviceId}
                     value={device.deviceId}
@@ -73,20 +86,18 @@ export const ControlContainer: React.FC = () => {
                   </MenuItem>
                 ))}
               </Select>
-            ) : (
-              <Button onClick={loadVideoStream}>
-                Turn On Camera
-              </Button>
             )}
             <IconButton
               onClick={flipHorizontally}
               aria-label="flip horizontally"
+              color={iconColor(control.horizontallyFlipped)}
             >
               <FlipIcon/>
             </IconButton>
             <IconButton
               onClick={flipVertically}
               aria-label="flip vertically"
+              color={iconColor(control.verticallyFlipped)}
             >
               <FlipIcon style={{transform: 'rotate(0.25turn)'}} />
             </IconButton>

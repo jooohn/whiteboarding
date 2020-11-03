@@ -1,66 +1,78 @@
-import { useMemo } from 'react';
+import { useEffect } from 'react';
 import { atom, useRecoilValue, useSetRecoilState } from 'recoil';
 import { useErrorHandler } from '../error-handler';
 
-export type VideoStreamState =
-  | { state: 'WAITING' }
-  | { state: 'LOADING' }
-  | { state: 'LOADED', selected: { stream: MediaStream, deviceId: string } | undefined, videoInputDevices: MediaDeviceInfo[] }
+export type DeviceSelection = {
+  devices: MediaDeviceInfo[],
+  deviceId: string | undefined,
+};
 
-const waiting: VideoStreamState = { state: 'WAITING' };
-const loading: VideoStreamState = { state: 'LOADING' };
-function loaded(selected: { stream: MediaStream, deviceId: string } | undefined, videoInputDevices: MediaDeviceInfo[]): VideoStreamState {
-  return { state: 'LOADED', selected, videoInputDevices };
-}
-
-const videoStream = atom<VideoStreamState>({
-  key: 'videoStream',
-  default: { state: 'WAITING' },
+const deviceSelection = atom<DeviceSelection>({
+  key: 'devices',
+  default: {
+    devices: [],
+    deviceId: undefined,
+  },
 });
 
-export function useVideoStreamState(): VideoStreamState {
+export function useDeviceSelection(): DeviceSelection {
+  return useRecoilValue(deviceSelection)
+}
+
+export function useSelectDevice(): (deviceId: string) => void {
+  const setState = useSetRecoilState(deviceSelection);
+  return deviceId => setState(selection => ({
+    ...selection,
+    deviceId,
+  }));
+}
+
+const videoStream = atom<MediaStream | undefined>({
+  key: 'videoStream',
+  default: undefined,
+});
+
+export function useVideoStream(): MediaStream | undefined {
   return useRecoilValue(videoStream);
 }
 
-async function loadVideoInputDevices() {
-  await navigator.mediaDevices.getUserMedia({ video: true });
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter(({ kind }) => kind === 'videoinput');
+export function useLoadVideoStream(active: boolean) {
+  const { deviceId } = useRecoilValue(deviceSelection);
+  const setDevices = useSetRecoilState(deviceSelection);
+  const setVideoStream = useSetRecoilState(videoStream);
+  const errorHandler = useErrorHandler();
+
+  useEffect(() => {
+    if (active) {
+      navigator.mediaDevices.getUserMedia({ video: true }).then(async um => {
+        um.getTracks().forEach(t => t.stop());
+        const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = mediaDevices.filter(({ kind }) => kind === 'videoinput');
+        setDevices(({ deviceId, devices }) => ({
+          devices: videoDevices,
+          deviceId: videoDevices.some(vd => vd.deviceId === deviceId)
+            ? deviceId
+            : videoDevices[0]?.deviceId,
+        }));
+      });
+    }
+  }, [active, setVideoStream, setDevices]);
+
+  useEffect(() => {
+    if (!active || !deviceId) {
+      setVideoStream(undefined);
+      return;
+    }
+    const mediaStreamPromise = loadMediaStream(deviceId);
+    mediaStreamPromise.then(setVideoStream).catch(errorHandler);
+    return () => {
+      mediaStreamPromise.then(ms => ms.getTracks().forEach(t => t.stop()));
+    };
+  }, [deviceId, active, errorHandler, setVideoStream]);
 }
 
 async function loadMediaStream(deviceId: string) {
   return await navigator.mediaDevices.getUserMedia({
     video: { deviceId: { exact: deviceId } }
   });
-}
-
-function useLoadVideoStreamState(): (f: (devices: MediaDeviceInfo[]) => string | undefined) => void {
-  const setState = useSetRecoilState(videoStream);
-  const errorHandler = useErrorHandler();
-  return useMemo(() => async f => {
-    setState(loading);
-    try {
-      const videoInputDevices = await loadVideoInputDevices();
-      const deviceId = f(videoInputDevices);
-      if (!deviceId) {
-        setState(loaded(undefined, videoInputDevices));
-        return;
-      }
-      const stream = await loadMediaStream(deviceId);
-      setState(loaded({ deviceId, stream }, videoInputDevices));
-    } catch (e) {
-      errorHandler(e);
-      setState(waiting);
-    }
-  }, [errorHandler, setState]);
-}
-
-export function useLoadVideoStream(): () => void {
-  const loadVideoStreamState = useLoadVideoStreamState();
-  return useMemo(() => () => loadVideoStreamState(devices => devices[0]?.deviceId), [loadVideoStreamState]);
-}
-
-export function useSelectVideoStream(): (deviceId: string) => void {
-  const loadVideoStreamState = useLoadVideoStreamState();
-  return useMemo(() => (deviceId: string) => loadVideoStreamState(() => deviceId), [loadVideoStreamState]);
 }

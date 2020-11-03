@@ -1,6 +1,7 @@
 import { atom, useRecoilValue, useSetRecoilState } from 'recoil';
 
 export type Control = {
+  camera: boolean;
   horizontallyFlipped: boolean;
   verticallyFlipped: boolean;
 }
@@ -8,6 +9,7 @@ export type Control = {
 const control = atom<Control>({
   key: 'control',
   default: {
+    camera: true,
     horizontallyFlipped: false,
     verticallyFlipped: false,
   },
@@ -15,6 +17,14 @@ const control = atom<Control>({
 
 export function useControlValue(): Control {
   return useRecoilValue(control);
+}
+
+export function useToggleCamera() {
+  const setControl = useSetRecoilState(control);
+  return () => setControl(current => ({
+    ...current,
+    camera: !current.camera,
+  }));
 }
 
 export function useFlipHorizontally() {
