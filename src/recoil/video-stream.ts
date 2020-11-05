@@ -2,6 +2,19 @@ import { useEffect } from 'react';
 import { atom, useRecoilValue, useSetRecoilState } from 'recoil';
 import { useErrorHandler } from '../error-handler';
 
+const video = atom<HTMLVideoElement | undefined>({
+  key: 'video',
+  default: undefined,
+});
+
+export function useSetVideo() {
+  return useSetRecoilState(video);
+}
+
+export function useVideo() {
+  return useRecoilValue(video);
+}
+
 export type DeviceSelection = {
   devices: MediaDeviceInfo[],
   deviceId: string | undefined,

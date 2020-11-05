@@ -1,11 +1,12 @@
-import React, { Ref, useCallback, useEffect, useState } from 'react';
+import React, { Ref, useCallback, useEffect } from 'react';
 import { useControlValue } from '../recoil/control';
-import { useVideoStream } from '../recoil/video-stream';
+import { useSetVideo, useVideo, useVideoStream } from '../recoil/video-stream';
 
 export const VideoContainer: React.FC = () => {
   const { camera, horizontallyFlipped, verticallyFlipped } = useControlValue();
   const videoStream = useVideoStream();
-  const [video, setVideo] = useState<HTMLVideoElement | undefined>();
+  const video = useVideo();
+  const setVideo = useSetVideo();
   const ref = useCallback(node => {
     setVideo(node ?? undefined);
   }, [setVideo]);
@@ -22,6 +23,7 @@ export const VideoContainer: React.FC = () => {
       video.srcObject = null;
     }
   }, [video, videoStream, camera]);
+
   return (
     <Video
       ref={ref}

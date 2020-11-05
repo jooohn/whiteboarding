@@ -1,12 +1,16 @@
-import { AppBar, Fade, IconButton, MenuItem, PropTypes, Select, Toolbar } from '@material-ui/core';
-import CameraAltIcon from '@material-ui/icons/CameraAlt';
-import FlipIcon from '@material-ui/icons/Flip';
+import { AppBar, Fade, IconButton, MenuItem, PropTypes, Select, Toolbar, Tooltip } from '@material-ui/core';
+import { CameraAlt, Flip, Fullscreen } from '@material-ui/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { delay, map, startWith, switchMap } from 'rxjs/operators';
-import { useControlValue, useFlipHorizontally, useFlipVertically, useToggleCamera } from '../recoil/control';
+import {
+  useControlValue,
+  useFlipHorizontally,
+  useFlipVertically,
+  useToggleCamera,
+} from '../recoil/control';
 import { useMouseMove$ } from '../recoil/mouse';
-import { useDeviceSelection, useLoadVideoStream, useSelectDevice } from '../recoil/video-stream';
+import { useDeviceSelection, useSelectDevice, useVideo } from '../recoil/video-stream';
 
 const controlAppearanceDuration = 2000;
 
@@ -51,22 +55,24 @@ export const ControlContainer: React.FC = () => {
   const flipVertically = useFlipVertically();
   const deviceSelection = useDeviceSelection();
   const selectDevice = useSelectDevice();
-  useLoadVideoStream(control.camera);
+  const video = useVideo();
   return (
     <div
       onMouseEnter={() => enter$.next(true)}
       onMouseLeave={() => enter$.next(false)}
     >
       <Fade in={showControl}>
-        <AppBar color="transparent">
+        <AppBar color="default">
           <Toolbar>
-            <IconButton
-              onClick={toggleCamera}
-              aria-label="toggle camera"
-              color={iconColor(control.camera)}
-            >
-              <CameraAltIcon/>
-            </IconButton>
+            <Tooltip title="Toggle camera">
+              <IconButton
+                onClick={toggleCamera}
+                aria-label="toggle camera"
+                color={iconColor(control.camera)}
+              >
+                <CameraAlt/>
+              </IconButton>
+            </Tooltip>
             {deviceSelection.deviceId && (
               <Select
                 value={deviceSelection.deviceId}
@@ -87,20 +93,36 @@ export const ControlContainer: React.FC = () => {
                 ))}
               </Select>
             )}
-            <IconButton
-              onClick={flipHorizontally}
-              aria-label="flip horizontally"
-              color={iconColor(control.horizontallyFlipped)}
-            >
-              <FlipIcon/>
-            </IconButton>
-            <IconButton
-              onClick={flipVertically}
-              aria-label="flip vertically"
-              color={iconColor(control.verticallyFlipped)}
-            >
-              <FlipIcon style={{transform: 'rotate(0.25turn)'}} />
-            </IconButton>
+            <Tooltip title="Flip horizontally">
+              <IconButton
+                onClick={flipHorizontally}
+                aria-label="flip horizontally"
+                color={iconColor(control.horizontallyFlipped)}
+              >
+                <Flip/>
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Flip vertically">
+              <IconButton
+                onClick={flipVertically}
+                aria-label="flip vertically"
+                color={iconColor(control.verticallyFlipped)}
+              >
+                <Flip style={{transform: 'rotate(0.25turn)'}} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Full screen">
+              <IconButton
+                onClick={() => {
+                  if (video) {
+                    video.requestFullscreen().then(console.error);
+                  }
+                }}
+                aria-label="toggle full screen"
+              >
+                <Fullscreen/>
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </AppBar>
       </Fade>
